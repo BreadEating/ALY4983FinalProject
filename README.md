@@ -131,3 +131,6 @@ Set these repo Secrets (Settings → Secrets and variables → Actions):
 * ENDPOINT_NAME (e.g., credit-inference-ep)
 * ROLE_ARN (SageMaker execution role)
 Re-run a pipeline: push a commit or click Re-run in Actions.
+
+## Dataset source
+https://www.kaggle.com/datasets/uciml/default-of-credit-card-clients-dataset/data
