@@ -70,7 +70,7 @@ jobs:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ secrets.AWS_REGION }}
-          
+
       - name: Pull dataset via DVC
         run: |
           dvc pull -v
@@ -80,14 +80,15 @@ jobs:
 
       - name: Log in to ECR
         uses: aws-actions/amazon-ecr-login@v2
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build (linux/amd64) & load to classic Docker (ensures Docker v2 manifest)
-        run: |
-          docker buildx create --use --name sm-builder || true
-          docker buildx build --platform linux/amd64 \
-            --output=type=docker \
-            --attest type=provenance,disabled=true \
-            -t credit-inference:ci .
+      - name: Build image
+        run: docker build -t credit-inference:ci .
+      
+      - name: Log in to ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Tag & push to ECR
         env:
