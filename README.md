@@ -121,6 +121,7 @@ On push to main the job will:
 * *vc repro (build artifacts)
 * Build Docker, push to ECR
 * Create new endpoint config and update the SageMaker endpoint
+
 Set these repo Secrets (Settings → Secrets and variables → Actions):
 * AWS_ACCESS_KEY_ID
 * AWS_SECRET_ACCESS_KEY
