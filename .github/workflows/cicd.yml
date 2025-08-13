@@ -29,7 +29,7 @@ jobs:
           pip install -r requirements.txt
           pip install dvc[s3] pytest
 
-      - name: Configure AWS creds (for DVC S3)
+      - name: Configure AWS creds
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -47,9 +47,6 @@ jobs:
       - name: Unit tests
         run: pytest -q
 
-      - name: Sanity train (fast)
-        run: python -m src.train_sanity
-
   cd:
     needs: ci
     if: github.ref == 'refs/heads/main'
@@ -62,7 +59,7 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install deps (DVC for pull)
+      - name: Install deps (DVC for repro)
         run: |
           pip install --upgrade pip
           pip install dvc[s3]
@@ -74,17 +71,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ secrets.AWS_REGION }}
 
-      - name: DVC pull artifacts (ensure model exists)
-        run: |
-          dvc pull || true
-          test -f artifacts/model.joblib || echo "No local model? Using sanity-train." 
-          test -f artifacts/model.joblib || python -m src.train_sanity
+      - name: Build full pipeline (produces artifacts/)
+        run: dvc repro
 
       - name: Log in to ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build (linux/amd64) and load to classic Docker (Docker v2 manifest)
+      - name: Build (linux/amd64) & load to classic Docker (ensures Docker v2 manifest)
         run: |
           docker buildx create --use --name sm-builder || true
           docker buildx build --platform linux/amd64 \
@@ -100,6 +93,7 @@ jobs:
           docker tag credit-inference:ci $IMAGE_URI
           docker push $IMAGE_URI
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "Pushed $IMAGE_URI"
 
       - name: Create/Update SageMaker endpoint
         env:
@@ -120,12 +114,11 @@ jobs:
 
           aws sagemaker create-endpoint-config \
             --endpoint-config-name "$CFG_NAME" \
-            --production-variants "[{\"VariantName\":\"$VARIANT_NAME\",\"ModelName\":\"$MODEL_NAME\",\"InitialInstanceCount\":${INITIAL_INSTANCE_COUNT},\"InstanceType\":\"${INSTANCE_TYPE}\"}]" \
+            --production-variants "[{\"VariantName\":\"$VARIANT_NAME\",\"ModelName\":\"$MODEL_NAME\",\"InitialInstanceCount\":${INITIAL_INSTANCE_COUNT},\"InstanceType\":\"$INSTANCE_TYPE\"}]" \
             --region "${AWS_REGION}"
 
-          # Create or update
           aws sagemaker describe-endpoint --endpoint-name "${ENDPOINT_NAME}" --region "${AWS_REGION}" >/dev/null 2>&1 \
-            && aws sagemaker update-endpoint --endpoint-name "${ENDPOINT_NAME}" --endpoint-config-name "${CFG_NAME}" --region "${AWS_REGION}" \
-            || aws sagemaker create-endpoint --endpoint-name "${ENDPOINT_NAME}" --endpoint-config-name "${CFG_NAME}" --region "${AWS_REGION}"
+            && aws sagemaker update-endpoint --endpoint-name "${ENDPOINT_NAME}" --endpoint-config-name "$CFG_NAME" --region "${AWS_REGION}" \
+            || aws sagemaker create-endpoint --endpoint-name "${ENDPOINT_NAME}" --endpoint-config-name "$CFG_NAME" --region "${AWS_REGION}"
 
           aws sagemaker wait endpoint-in-service --endpoint-name "${ENDPOINT_NAME}" --region "${AWS_REGION}"
