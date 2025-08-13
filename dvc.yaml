@@ -1,0 +1,36 @@
+stages:
+  ingest:
+    cmd: python -m src.data_ingest
+    deps:
+      - src/data_ingest.py
+      - data/raw/UCI_Credit_Card.csv
+    outs:
+      - data/staged/data.csv
+
+  validate:
+    cmd: python -m src.data_validation
+    deps:
+      - src/data_validation.py
+      - data/staged/data.csv
+    metrics:
+      - artifacts/validation_report.json
+
+  train_and_tune:
+    cmd: python -m src.train_and_tune
+    deps:
+      - src/train_and_tune.py
+      - data/staged/data.csv
+    outs:
+      - artifacts/model.joblib
+      - artifacts/feature_columns.json
+    metrics:
+      - artifacts/train_report.json
+
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+      - src/evaluate.py
+      - data/staged/data.csv
+      - artifacts/model.joblib
+    metrics:
+      - artifacts/metrics.json

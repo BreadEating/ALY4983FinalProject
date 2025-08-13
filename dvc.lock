@@ -1,0 +1,78 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python -m src.data_ingest
+    deps:
+    - path: data/raw/UCI_Credit_Card.csv
+      hash: md5
+      md5: 940b416bb13a9b24bb5c9e1589284005
+      size: 2862995
+    - path: src/data_ingest.py
+      hash: md5
+      md5: 24223d879266aa2c7026fe44bc72b33f
+      size: 515
+    outs:
+    - path: data/staged/data.csv
+      hash: md5
+      md5: 7064fb7a94481c33c1a986e5c7e3a59e
+      size: 3478291
+  validate:
+    cmd: python -m src.data_validation
+    deps:
+    - path: data/staged/data.csv
+      hash: md5
+      md5: 7064fb7a94481c33c1a986e5c7e3a59e
+      size: 3478291
+    - path: src/data_validation.py
+      hash: md5
+      md5: 70df31e0f98c550d4f0b27ec8049bbbf
+      size: 1235
+    outs:
+    - path: artifacts/validation_report.json
+      hash: md5
+      md5: 70ce40f89cb1075c400839a798c2c00b
+      size: 570
+  train_and_tune:
+    cmd: python -m src.train_and_tune
+    deps:
+    - path: data/staged/data.csv
+      hash: md5
+      md5: 7064fb7a94481c33c1a986e5c7e3a59e
+      size: 3478291
+    - path: src/train_and_tune.py
+      hash: md5
+      md5: 44b2167bfdee01abec78803d5ae85396
+      size: 1570
+    outs:
+    - path: artifacts/feature_columns.json
+      hash: md5
+      md5: a5617f1a411e08f0aa4948af0075ca93
+      size: 256
+    - path: artifacts/model.joblib
+      hash: md5
+      md5: 49adbda8c3b99ce6409e3b0981a5cb71
+      size: 8422409
+    - path: artifacts/train_report.json
+      hash: md5
+      md5: b6eaf7b354627704081dc20fa8a1f5e8
+      size: 146
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+    - path: artifacts/model.joblib
+      hash: md5
+      md5: 49adbda8c3b99ce6409e3b0981a5cb71
+      size: 8422409
+    - path: data/staged/data.csv
+      hash: md5
+      md5: 7064fb7a94481c33c1a986e5c7e3a59e
+      size: 3478291
+    - path: src/evaluate.py
+      hash: md5
+      md5: 1285fffd802d7ca2eadfcfd31f1c67a8
+      size: 863
+    outs:
+    - path: artifacts/metrics.json
+      hash: md5
+      md5: 4a56128869dd78ecf3e3f333e938e185
+      size: 23

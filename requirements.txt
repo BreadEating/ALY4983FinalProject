@@ -1,0 +1,10 @@
+pandas
+numpy
+scikit-learn
+joblib
+PyYAML
+dvc[s3]
+fastapi
+uvicorn
+prometheus_client
+boto3
